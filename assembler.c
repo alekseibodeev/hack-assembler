@@ -13,6 +13,59 @@
 #include "code.h"
 #include "helpers.h"
 #include "parser.h"
+#include "table.h"
+
+/*
+ * Function: resolve_label_symbols
+ * -------------------------------
+ *  goes through source code line by line and builts symbol table
+ *
+ *  input_stream: assembler language source file stream
+ *  table: table to populate with labels
+ */
+static void resolve_label_symbols(FILE *input_stream, table_t *table)
+{
+    asm_command_t *command;
+    short ln = -1; /* current instruction line */
+
+    while ((command = get_command(input_stream))) {
+        switch (command->type) {
+            case A_COMMAND:
+            case C_COMMAND:
+                ln++;
+                break;
+            case L_COMMAND:
+                table_add(table, command->symbol, ln + 1);
+                break;
+        }
+
+        command_del(command);
+    }
+}
+
+/*
+ * Function: resolve_var_symbol
+ * ----------------------------
+ *  resolves symbol in an A command
+ *
+ *  symbol: variable or numeric symbol
+ *  table: symbol table
+ *  address: next available address
+ *
+ *  returns: integer value of the symbol
+ */
+static short resolve_var_symbol(const char *symbol,
+        table_t *table, short *address_ptr)
+{
+    if (str_isnum(symbol)) {
+        return atoi(symbol);
+    }
+    if (!table_contains(table, symbol)) {
+        table_add(table, symbol, *address_ptr);
+        *address_ptr += 1;
+    }
+    return table_get(table, symbol);
+}
 
 /*
  * Function: write_hack_command
@@ -45,9 +98,10 @@ static void write_hack_command(FILE *stream, short code)
  *  stream: writable stream
  *  command: assembler command structure
  */
-static void write_a_command(FILE *stream, asm_command_t *command)
+static void write_a_command(FILE *stream,
+        asm_command_t *command, table_t *table, short *address_ptr)
 {
-    short code = atoi(command->symbol);
+    short code = resolve_var_symbol(command->symbol, table, address_ptr);
     write_hack_command(stream, code);
 }
 
@@ -79,22 +133,64 @@ static void write_help_msg(void)
 }
 
 /*
- * Function: assemble
- * ------------------
- *  reads assembler commands for input stream and writes binary encodings
- *  to output stream
+ * Function: init_builtins
+ * -----------------------
+ *  creates new table and populates it with hack assembler builtin symbols
  *
- *  input_stream: data reader stream
- *  output_stream: data writer stream
+ *  returns: brand new table
  */
-void assemble(FILE *input_stream, FILE *output_stream)
+static table_t *init_builtins(void)
+{
+    table_t *table = table_new();
+
+    table_add(table, "R0", 0);
+    table_add(table, "R1", 1);
+    table_add(table, "R2", 2);
+    table_add(table, "R3", 3);
+    table_add(table, "R4", 4);
+    table_add(table, "R5", 5);
+    table_add(table, "R6", 6);
+    table_add(table, "R7", 7);
+    table_add(table, "R8", 8);
+    table_add(table, "R9", 9);
+    table_add(table, "R10", 10);
+    table_add(table, "R11", 11);
+    table_add(table, "R12", 12);
+    table_add(table, "R13", 13);
+    table_add(table, "R14", 14);
+    table_add(table, "R15", 15);
+
+    table_add(table, "SP", 0);
+    table_add(table, "LCL", 1);
+    table_add(table, "ARG", 2);
+    table_add(table, "THIS", 3);
+    table_add(table, "THAT", 4);
+
+    table_add(table, "SCREEN", 16384);
+    table_add(table, "KBD", 24576);
+
+    return table;
+}
+
+/*
+ * Function: generate_hack_commands
+ * --------------------------------
+ *  parses source code line by line, resolves symbols and writes hack commands
+ *
+ *  input_stream: readable assembler commands stream
+ *  output_stream: writable hack commands stream
+ *  table: symbol table
+ */
+static void generate_hack_commands(FILE *input_stream,
+        FILE *output_stream, table_t *table)
 {
     asm_command_t *command;
+    short address = FIRST_FREE_ADDRESS;
 
     while ((command = get_command(input_stream))) {
         switch (command->type) {
             case A_COMMAND:
-                write_a_command(output_stream, command);
+                write_a_command(output_stream, command, table, &address);
                 break;
             case C_COMMAND:
                 write_c_command(output_stream, command);
@@ -105,6 +201,33 @@ void assemble(FILE *input_stream, FILE *output_stream)
 
         command_del(command);
     }
+}
+
+/*
+ * Function: assemble
+ * ------------------
+ *  reads assembler commands for input stream and writes binary encodings
+ *  to output stream
+ *
+ *  input_stream: data reader stream
+ *  output_stream: data writer stream
+ */
+void assemble(FILE *input_stream, FILE *output_stream)
+{
+    /* initialize symbol table */
+    table_t *table = init_builtins();
+
+    /* first pass: build symbol table */
+    resolve_label_symbols(input_stream, table);
+
+    /* restore stream */
+    rewind(input_stream);
+
+    /* second pass: write actual code */
+    generate_hack_commands(input_stream, output_stream, table);
+
+    /* cleanup */
+    table_del(table);
 }
 
 /*

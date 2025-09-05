@@ -22,4 +22,16 @@
  */
 bool str_ends_with(const char *s, const char *suffix);
 
+/*
+ * Function: str_isnum
+ * -------------------
+ *  checks wether the string is numeric
+ *
+ *  s: string to test
+ *
+ *  returns: true if 's' consists only of numeric characters
+ *           false otherwise
+ */
+bool str_isnum(const char *s);
+
 #endif // !HACK_ASM_HELPERS_H

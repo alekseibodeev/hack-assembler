@@ -4,6 +4,7 @@
  *  set of utility functions
  */
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -37,4 +38,25 @@ bool str_ends_with(const char *s, const char *suffix)
     }
 
     return !strcmp(s_suffix, suffix);
+}
+
+/*
+ * Function: str_isnum
+ * -------------------
+ *  checks wether the string is numeric
+ *
+ *  s: string to test
+ *
+ *  returns: true if 's' consists only of numeric characters
+ *           false otherwise
+ */
+bool str_isnum(const char *s)
+{
+    for (char *p = (char *) s; *p; p++) {
+        if (!isdigit(*p)) {
+            return false;
+        }
+    }
+
+    return true;
 }

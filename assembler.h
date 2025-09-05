@@ -11,6 +11,7 @@
 #define HACK_ASSEMBLER_H
 
 #define HACK_WORD_SIZE 16
+#define FIRST_FREE_ADDRESS 16
 #define INPUT_SUFFIX ".asm"
 #define OUTPUT_SUFFIX ".hack"
 
