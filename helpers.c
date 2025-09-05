@@ -21,7 +21,6 @@
  */
 bool str_ends_with(const char *s, const char *suffix)
 {
-    char *s_suffix;
     size_t s_len = strlen(s);
     size_t suffix_len = strlen(suffix);
 
@@ -29,15 +28,8 @@ bool str_ends_with(const char *s, const char *suffix)
         return false;
     }
 
-    s_suffix = (char *) s;
-    /* expression 's_suffix - s' produces prefix length
-     * so 'len' - 'prefix len' = 'suffix len'
-     * then compare length of current string suffix with the target one */
-    while (s_len - (s_suffix - s) > suffix_len) {
-        s_suffix++;
-    }
-
-    return !strcmp(s_suffix, suffix);
+    /* pointer arithmetic here extracts window with the size of taget suffix */
+    return !strcmp(s + s_len - suffix_len, suffix);
 }
 
 /*
