@@ -34,6 +34,7 @@ static asm_command_t *command_new(command_type_t type)
     command->dest = NULL;
     command->comp = NULL;
     command->jump = NULL;
+    return command;
 }
 
 /*
