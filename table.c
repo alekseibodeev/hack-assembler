@@ -47,7 +47,7 @@ static int hash(const char *s)
 static table_node_t *node_new(const char *key,
         short val, table_node_t *next_ptr)
 {
-    table_node_t *node = malloc(sizeof(node));
+    table_node_t *node = malloc(sizeof(table_node_t));
     node->key = strdup(key);
     node->val = val;
     node->next = next_ptr;
